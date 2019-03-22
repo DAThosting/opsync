@@ -120,7 +120,7 @@ function opGetExtensionPricing($vars, $extension, $operation) {
   
 	$price = $reply->getValue()[price][reseller][price];
 	
-	$price = ceil($price+($price*($vars['margin']/100)));
+	$price = $price+($price*($vars['margin']/100));
 
     return (json_decode($price, true));
 }
