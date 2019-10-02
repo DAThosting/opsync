@@ -30,8 +30,21 @@ function opsync_config() {
             "FriendlyName" => "Price margin",
             "Type" => "text",
             "Size" => "4",
-            "Description" => "Set your pricing margin for extensions. 20 = 20% margin",
+            "Description" => "Set your pricing margin for extensions. 20 = 20% margin. Excl. VAT",
             "Default" => "0"
+        ),
+        "vat" => array (
+            "FriendlyName" => "VAT in %",
+            "Type" => "text",
+            "Size" => "4",
+            "Description" => "Set your VAT. E.g. 19 for 19% VAT",
+            "Default" => "0"
+        ),
+        "beautifier" => array (
+            "FriendlyName" => "Price beautifier",
+            "Type" => "yesno",
+            "Description" => "Round price up to .49 or .99",
+            "Default" => "no"
         )
     ));
     return $configarray;
@@ -120,8 +133,15 @@ function opGetExtensionPricing($vars, $extension, $operation) {
   
 	$price = $reply->getValue()[price][reseller][price];
 	
-	$price = $price+($price*($vars['margin']/100));
-
+	$price = $price+($price*($vars['margin']/100))+($price*($vars['vat']/100));
+	
+	if($vars['beautifier'] == "on"){
+		if(substr($price,-2) < "49" && $price != "0"){
+			$price = ceil($price)-0.51;
+		} elseif($price != "0") {
+			$price = ceil($price)-0.01;
+		}
+	}
     return (json_decode($price, true));
 }
 
@@ -143,6 +163,103 @@ function opInsertExtension($vars, $extension, $firstyear_price, $transferprice, 
         'domaintransfer' => $transferprice,
         'domainrenew' => $costprice
     ];
+	
+		if($vars['beautifier'] == "on"){
+			// 1 year
+			$msetupfee = $price;
+			
+			// 2 years
+			if(substr($price*2,-2) < "49" && $price != "0"){
+				$qsetupfee = ceil($price*2)-0.51;
+			} elseif($price != "0") {
+				$qsetupfee = ceil($price*2)-0.01;
+			} else {
+				$qsetupfee = "0";
+			}
+			
+			// 3 years
+			if(substr($price*3,-2) < "49" && $price != "0"){
+				$ssetupfee = ceil($price*3)-0.51;
+			} elseif($price != "0") {
+				$ssetupfee = ceil($price*3)-0.01;
+			} else {
+				$ssetupfee = "0";
+			}
+
+			// 4 years
+			if(substr($price*4,-2) < "49" && $price != "0"){
+				$asetupfee = ceil($price*4)-0.51;
+			} elseif($price != "0") {
+				$asetupfee = ceil($price*4)-0.01;
+			} else {
+				$asetupfee = "0";
+			}
+
+			// 5 years
+			if(substr($price*5,-2) < "49" && $price != "0"){
+				$bsetupfee = ceil($price*5)-0.51;
+			} elseif($price != "0") {
+				$bsetupfee = ceil($price*5)-0.01;
+			} else {
+				$bsetupfee = "0";
+			}
+			
+			// 6 years
+			if(substr($price*6,-2) < "49" && $price != "0"){
+				$monthly = ceil($price*6)-0.51;
+			} elseif($price != "0") {
+				$monthly = ceil($price*6)-0.01;
+			} else {
+				$monthly = "0";
+			}
+			
+			// 7 years
+			if(substr($price*7,-2) < "49" && $price != "0"){
+				$quarterly = ceil($price*7)-0.51;
+			} elseif($price != "0") {
+				$quarterly = ceil($price*7)-0.01;
+			} else {
+				$quarterly = "0";
+			}
+			
+			// 8 years
+			if(substr($price*8,-2) < "49" && $price != "0"){
+				$semiannually = ceil($price*8)-0.51;
+			} elseif($price != "0") {
+				$semiannually = ceil($price*8)-0.01;
+			} else {
+				$semiannually = "0";
+			}
+
+			// 9 years
+			if(substr($price*9,-2) < "49" && $price != "0"){
+				$annually = ceil($price*9)-0.51;
+			} elseif($price != "0") {
+				$annually = ceil($price*9)-0.01;
+			} else {
+				$annually = "0";
+			}
+			
+			// 10 years
+			if(substr($price*10,-2) < "49" && $price != "0"){
+				$biennially = ceil($price*10)-0.51;
+			} elseif($price != "0") {
+				$biennially = ceil($price*10)-0.01;
+			} else {
+				$biennially = "0";
+			}
+		} else {
+			$msetupfee = $price;
+			$qsetupfee = $price*2;
+			$ssetupfee = $price*3;
+			$asetupfee = $price*4;
+			$bsetupfee = $price*5;
+			$monthly = $price*6;
+			$quarterly = $price*7;
+			$semiannually = $price*8;
+			$annually = $price*9;
+			$biennially = $price*10;
+		}
 
     foreach($types as $type => $price){
         $data = array(
@@ -150,17 +267,17 @@ function opInsertExtension($vars, $extension, $firstyear_price, $transferprice, 
             'type' => $type,
             'currency' => '1',
             'relid' => $relid,
-            'msetupfee' => $price,
-            'qsetupfee' => '-1.00',
-            'ssetupfee' => '-1.00',
-            'asetupfee' => '-1.00',
-            'bsetupfee' => '-1.00',
+            'msetupfee' => $msetupfee,
+            'qsetupfee' => $qsetupfee,
+            'ssetupfee' => $ssetupfee,
+            'asetupfee' => $asetupfee,
+            'bsetupfee' => $bsetupfee,
             'tsetupfee' => '0.00',
-            'monthly' => '-1.00',
-            'quarterly' => '-1.00',
-            'semiannually' => '-1.00',
-            'annually' => '-1.00',
-            'biennially' => '-1.00',
+            'monthly' => $monthly,
+            'quarterly' => $quarterly,
+            'semiannually' => $semiannually,
+            'annually' => $annually,
+            'biennially' => $biennially,
             'triennially' => '0.00'
         );
         Capsule::table('tblpricing')->insert($data);
@@ -180,6 +297,113 @@ function opUpdateExtension($vars, $extension, $firstyear_price, $transferprice, 
     ];
 
     foreach($types as $type => $price){
-        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['msetupfee' => $price]);
+		
+		if($vars['beautifier'] == "on"){
+			// 1 year
+			$msetupfee = $price;
+			
+			// 2 years
+			if(substr($price*2,-2) < "49" && $price != "0"){
+				$qsetupfee = ceil($price*2)-0.51;
+			} elseif($price != "0") {
+				$qsetupfee = ceil($price*2)-0.01;
+			} else {
+				$qsetupfee = "0";
+			}
+			
+			// 3 years
+			if(substr($price*3,-2) < "49" && $price != "0"){
+				$ssetupfee = ceil($price*3)-0.51;
+			} elseif($price != "0") {
+				$ssetupfee = ceil($price*3)-0.01;
+			} else {
+				$ssetupfee = "0";
+			}
+
+			// 4 years
+			if(substr($price*4,-2) < "49" && $price != "0"){
+				$asetupfee = ceil($price*4)-0.51;
+			} elseif($price != "0") {
+				$asetupfee = ceil($price*4)-0.01;
+			} else {
+				$asetupfee = "0";
+			}
+
+			// 5 years
+			if(substr($price*5,-2) < "49" && $price != "0"){
+				$bsetupfee = ceil($price*5)-0.51;
+			} elseif($price != "0") {
+				$bsetupfee = ceil($price*5)-0.01;
+			} else {
+				$bsetupfee = "0";
+			}
+			
+			// 6 years
+			if(substr($price*6,-2) < "49" && $price != "0"){
+				$monthly = ceil($price*6)-0.51;
+			} elseif($price != "0") {
+				$monthly = ceil($price*6)-0.01;
+			} else {
+				$monthly = "0";
+			}
+			
+			// 7 years
+			if(substr($price*7,-2) < "49" && $price != "0"){
+				$quarterly = ceil($price*7)-0.51;
+			} elseif($price != "0") {
+				$quarterly = ceil($price*7)-0.01;
+			} else {
+				$quarterly = "0";
+			}
+			
+			// 8 years
+			if(substr($price*8,-2) < "49" && $price != "0"){
+				$semiannually = ceil($price*8)-0.51;
+			} elseif($price != "0") {
+				$semiannually = ceil($price*8)-0.01;
+			} else {
+				$semiannually = "0";
+			}
+
+			// 9 years
+			if(substr($price*9,-2) < "49" && $price != "0"){
+				$annually = ceil($price*9)-0.51;
+			} elseif($price != "0") {
+				$annually = ceil($price*9)-0.01;
+			} else {
+				$annually = "0";
+			}
+			
+			// 10 years
+			if(substr($price*10,-2) < "49" && $price != "0"){
+				$biennially = ceil($price*10)-0.51;
+			} elseif($price != "0") {
+				$biennially = ceil($price*10)-0.01;
+			} else {
+				$biennially = "0";
+			}
+		} else {
+			$msetupfee = $price;
+			$qsetupfee = $price*2;
+			$ssetupfee = $price*3;
+			$asetupfee = $price*4;
+			$bsetupfee = $price*5;
+			$monthly = $price*6;
+			$quarterly = $price*7;
+			$semiannually = $price*8;
+			$annually = $price*9;
+			$biennially = $price*10;
+		}
+	
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['msetupfee' => $msetupfee]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['qsetupfee' => $qsetupfee]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['ssetupfee' => $ssetupfee]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['asetupfee' => $asetupfee]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['bsetupfee' => $bsetupfee]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['monthly' => $monthly]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['quarterly' => $quarterly]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['semiannually' => $semiannually]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['annually' => $annually]);
+        Capsule::table('tblpricing')->where('relid', $relid->id)->where('type', $type)->update(['biennially' => $biennially]);
     }
 }
